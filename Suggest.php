@@ -89,7 +89,7 @@ class Suggest {
             
             // Unset the array elements that correspond to the museums, which
             // are currently closed
-            if($currentTime < $timeOpenList[$i] || currentTime < $timeOpenList){
+            if($currentTime < $timeOpenList[$i] || $currentTime < $timeOpenList){
                 unset($timeArray[$i]);
             }
         }
@@ -120,5 +120,6 @@ class Suggest {
     public function sortMuseums() {
         
     }
+    // Hello
 
 }
