@@ -1,15 +1,10 @@
 <?php
 
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
-
 /**
  * Description of Suggest
- *
- * @author student
+ * Provides methods for extracting recommendations based on museum distance from
+ * the user, ratings and work times relative to the current time.
+ * @author pgmank
  */
 class Suggest {
     
@@ -20,106 +15,119 @@ class Suggest {
     private $historyList; // Array with keys that are museum ID's and values
                           // which are the keys' corresponding search frequency
     
-    // Museum indice's lists that are sorted to point the original museum,
-    // based on time, distance, rank history and a combination of the 2.
-    private $timeWeightList;
-    private $distanceWeightList;
-    private $rankWeighList;
-    private $historyWeightList;
-    private $combinedWeightList;
+    // Arrays that contain the values of each museum object
+    private $museumIdList;
+    private $timeOpenList;
+    private $timeCloseList;
+    private $distanceList;
+    private $ratingList;
+    
+    private $weightList;    // Contains the suggestion weights of each museum
+    // private $historyWeightList; // Later Feature
     
     
-    // Constructor
+    // Constructor //
+    
+    // The constructor
     public function __construct($museumList) {
-        $this->museumList=$museumList;
+        $this->museumList=&$museumList; // Copy museum array by reference
         
+        $currentTime = date('G', time()); // Get current time, measured in hours
+        $arraySize = count($museumList);
+        
+        
+        // Initialize each list with its corresponding field from the museumList
+        for($i=0 ; $i < $arraySize ; ++$i) {
+            
+            $this->timeOpenList[$i] = $this->museumList[$i]->getOpenHour();
+            $this->timeCloseList[$i] = $this->museumList[$i]->getCloseHour();
+            
+            // If the museum is closed, remove it from the list
+            if($currentTime < $this->timeOpenList[$i] 
+                    || $currentTime > $this->timeCloseList){
+                unset($museumList[$i]);
+                unset($this->timeOpenList[$i]);
+                unset($this->timeCloseList[$i]);
+                continue;
+            }
+            
+            $this->museumIdList[$i] = $museumList[$i]->getMuseumId();
+            $this->distanceList[$i] = $museumList[$i]->getDistance();
+            $this->ratingList[$i] = $museumList[$i]->getRating();
+            
+            $this->weightList[$i] = 0; // Initialize weights to zero
+        }
     }
     
     // Accessor and Mutator Methods
     
     // Class Specific Methods
     
-    // Return the 
+    // Later feature may contain a second argument that is given by the client
+    // user, showing the average time he spends on the museums. Then the
+    // recommendation will be given based on time till close not close time.
     public function time() {
-        
-        
-        asort($timeCloseList);  // Sort the array keeping the same keys-indices
-        return $timeWeighList;
+        asort($this->timeCloseList);  // Sort the array keeping the same keys-indices
     }
+    
+    // Returns an sorted index array that points to the museum list objects. 
+    // Use thoses indexes to get the museum items sorted by distance.
     public function distance() {
-        
-        return $distanceWeightList;
+        asort($this->distanceList);   // Sort the array
     }
     public function rating() {
-        
-        return $rankWeighList;
+        asort($this->ratingList);
     }
+    
+    // Later Feature //
+    /*
     public function history() {
         
         return $historyWeightList;
-    }
+    } */
     
-    // Checks according to the values which museums are closed and returns 
-    // a list of indices containing the museums that are open
-    // Later it may provide the a feature where the user can see the list of 
-    // open and closed museums
-    
-    // This function assumes that the open hour is smaller than the close hour,
-    // museums that close for example after 00:00 am will cause the function to
-    // export wrong results
-    public function checkClosed($timeArray) {
-        $i; // Counter
-        $timeOpenList;  
-        $timeCloseList;
-        $timeTillClose;
-        
-        $currentTime = date('G', time());
-        
-        // Storing the open and close hours of the mouseums to separate arrays
-        // in order to user their indexes after sorting to produce the
-        // timeWeighList
-        
-        foreach($museumList as $museum) {
-            $timeOpenList[] = $museum->getOpenHour();
-            $timeCloseList[] = $museum->getCloseHour();
-            $timeTillClose[] = $museum->getCloseHour(); 
-        }
-        
-        for ($i=0; $i<count($timeArray); ++$i) {
-            
-            // Unset the array elements that correspond to the museums, which
-            // are currently closed
-            if($currentTime < $timeOpenList[$i] || $currentTime < $timeOpenList){
-                unset($timeArray[$i]);
-            }
-        }
-        
-        return;
-        
-    }
 
     // Gets three boolean arguments as input to calculate the appropriate
     // combined list.
     public function combined($byTime, $byDistance, $byRating) {
+        
         if ($byTime) {
-            
+            time();
+            calcWeights($this->timeCloseList);
         }
         
         if ($byDistance) {
-            
+            distance();
+            calcWeights($this->distanceList);
         }
         
         if ($byRating) {
-            
+            rating();
+            calcWeights($this->ratingList);
         }
-        
-        return $combinedWeightList;
     }
     
-    // Sorts the list of museums according to a given list of indices
-    public function sortMuseums() {
+    // Calculates the weightList according to the executed suggestion functions
+    public function calcWeights(&$suggestList) {
+        $i=0;
+        foreach($suggestList as $index => $value) {
+            $this->weightList[$index]+= ++$i;
+        }
+    }
+    
+    // Returns the indices list containing the weights or an empty list if no
+    // recommendation function was called
+    public function getIndeces() {
+        foreach( $this->weightList as $weight) {
+            if ($weight == 0) {
+                echo 'Please call a recommendation function';
+                return array();
+            }
+        }
+        
+        asort($this->weightList);
+        
+        return array_keys($this->weightList);
         
     }
-    // Hello
-
 }
