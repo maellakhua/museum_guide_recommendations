@@ -17,8 +17,7 @@ class Suggest {
     
     // Arrays that contain the values of each museum object
     // private $museumIdList; // Not needed yet
-    private $timeOpenList;
-    private $timeCloseList;
+    private $timeTillCloseList;
     private $distanceList;
     private $ratingList;
     
@@ -31,31 +30,23 @@ class Suggest {
     // The constructor
     public function __construct($museumList) {
         $this->museumList=&$museumList; // Copy museum array by reference
-        
-        $currentTime = date('G', time()); // Get current time, measured in hours
         $arraySize = count($museumList);
-        
+       
         
         // Initialize each list with its corresponding field from the museumList
         for($i=0 ; $i < $arraySize ; ++$i) {
             
-            $this->timeOpenList[$i] = $this->museumList[$i]->getOpenHour();
-            $this->timeCloseList[$i] = $this->museumList[$i]->getCloseHour();
             
             // If the museum is closed, remove it from the list
-            if($currentTime < $this->timeOpenList[$i] 
-                    || $currentTime > $this->timeCloseList){
+            if($museumList[$i]->hasClosed()==true) {
                 unset($museumList[$i]);
-                unset($this->timeOpenList[$i]);
-                unset($this->timeCloseList[$i]);
                 continue;
             }
             
-            $this->museumIdList[$i] = $museumList[$i]->getMuseumId();
+            // $this->museumIdList[$i] = $museumList[$i]->getMuseumId();
             $this->distanceList[$i] = $museumList[$i]->getDistance();
             $this->ratingList[$i] = $museumList[$i]->getRating();
-            
-            $this->weightList[$i] = 0; // Initialize weights to zero
+            $this->timeTillCloseList[$i] = $museumList[$i]->getTimeTillClose();
         }
     }
     
@@ -69,20 +60,23 @@ class Suggest {
     // 
     // Adds appropriate weights to the weightList according to time
     public function time() {
-        asort($this->timeCloseList);  // Sort the array keeping the same keys-indices
-        calcWeights($this->timeCloseList);
+        arsort($this->timeTillCloseList);  // Sort the array keeping the same keys-indices
+        $this->calcWeights($this->timeTillCloseList);
+        return $this;
     }
     
     // Adds appropriate weights to the weightList according to distance
     public function distance() {
         asort($this->distanceList);   // Sort the array
-        calcWeights($this->distanceList);
+        $this->calcWeights($this->distanceList);
+        return $this;
     }
     
     // Adds appropriate weights to the weightList according to rating
     public function rating() {
-        asort($this->ratingList);
-        calcWeights($this->ratingList);
+        arsort($this->ratingList);
+        $this->calcWeights($this->ratingList);
+        return $this;
     }
     
     // Later Feature //
@@ -99,15 +93,15 @@ class Suggest {
     public function combined($byTime, $byDistance, $byRating) {
         
         if ($byTime) {
-            time();
+            $this->time();
         }
         
         if ($byDistance) {
-            distance();
+            $this->distance();
         }
         
         if ($byRating) {
-            rating();
+            $this->rating();
         }
         return $this;
     }
@@ -140,7 +134,26 @@ class Suggest {
         $returnList=$this->weightList;  // Copy whole array to new one
         unset($this->weightList);   // Clean up weightList
         
+        
         return array_keys($returnList);
         
     }
+    
+    // Produces a recommendation indeces' list inserting a custom weight to each 
+    // parameter
+    // There might be arguments in the future for custom weights and max values
+    // in the denominator.
+    // Also there might be an extra paramater in the equation like the time or
+    // the history of the user
+    public function recommend() {
+        unset($this->weightList);   // Unset way list, case it contains data
+        foreach($this->museumList as $index => $museum) {
+            $this->weightList[$index] =  0.6*($museum->getRating() / 10) +
+                    0.4*( 1 - $museum->getDistance() / 10000);
+        }
+        arsort($this->weightList);
+        
+        return array_keys($this->weightList);
+    }
+    
 }

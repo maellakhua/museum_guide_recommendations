@@ -19,17 +19,39 @@ class Museum {
     private $museumId;
     private $distance;
     private $rating;
-    private $openHour;
-    private $closeHour;
+    private $openTime;
+    private $closeTime;
+    private $timeTillClose;
+    private $closed;    // Boolean value that indicates if the museum is closed
     
     // Constructor //
-    public function __construct($museumId, $distance, $rating, $openHour,
-            $closeHour) {
+    public function __construct($museumId, $distance, $rating, $openTime,
+            $closeTime) {
         $this->museumId=$museumId;
         $this->distance=$distance;
         $this->rating=$rating;
-        $this->openHour=$openHour;
-        $this->closeHour=$closeHour;
+        $this->openTime=$openTime;
+        $this->closeTime=$closeTime;
+        
+         $currentTime = date('G', time()); // Get current time, measured in hours
+        
+         // Configure values in case the museum closes after midnight
+            if($closeTime < $openTime) {
+                $closeTime+=24;
+                if($currentTime < $openTime) {
+                    $currentTime+=24;
+                }
+            }
+            
+            // Calculate time till museum closes
+            $this->timeTillClose = $closeTime - $currentTime;
+            
+            // If the museum is closed, set $hasClosed to true
+            if($currentTime < $openTime || $currentTime >= $closeTime){
+                $this->closed = true;
+            } else {
+                $this->closed = false;
+            }
     }
     
     // Accessor Methods //
@@ -38,42 +60,28 @@ class Museum {
         return $this->museumId;
     }
     
-    public function setMuseumId($museumId) {
-        $this->museumId=$museumId;
-    }
-    
     public function getDistance() {
         return $this->distance;
-    }
-    
-    public function setDistance($distance) {
-        $this->distance=$distance;
     }
     
     public function getRating() {
         return $this->rating;
     }
     
-    public function setRating($rating) {
-        $this->rating=$rating;
+    public function getOpenTime() {
+        return $this->openTime;
     }
     
-    public function getOpenHour() {
-        return $this->openHour;
+    public function getCloseTime() {
+        return $this->closeTime;
     }
     
-    public function setOpenHour($openHour) {
-        $this->openHour=$openHour;
+    public function getTimeTillClose() {
+        return $this->timeTillClose;
     }
     
-    public function getCloseHour() {
-        return $this->closeHour;
+    public function hasClosed() {
+        return $this->closed;
     }
-    
-    public function setCloseHour($closeHour) {
-        $this->closeHour=$closeHour;
-    }
-    
-    
     
 }
