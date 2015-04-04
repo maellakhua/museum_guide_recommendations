@@ -12,18 +12,18 @@ class Suggest {
     
    
     private $museumList;  // List of museum objects
-    private $historyList; // Array with keys that are museum ID's and values
+    // private $historyList; // Array with keys that are museum ID's and values
                           // which are the keys' corresponding search frequency
     
     // Arrays that contain the values of each museum object
-    private $museumIdList;
+    // private $museumIdList; // Not needed yet
     private $timeOpenList;
     private $timeCloseList;
     private $distanceList;
     private $ratingList;
     
     private $weightList;    // Contains the suggestion weights of each museum
-    // private $historyWeightList; // Later Feature
+    // private $historyList; // Later Feature
     
     
     // Constructor //
@@ -59,24 +59,30 @@ class Suggest {
         }
     }
     
-    // Accessor and Mutator Methods
+    // Accessor and Mutator Methods // None Till Now
     
-    // Class Specific Methods
+    // Class Specific Methods //
     
     // Later feature may contain a second argument that is given by the client
     // user, showing the average time he spends on the museums. Then the
     // recommendation will be given based on time till close not close time.
+    // 
+    // Adds appropriate weights to the weightList according to time
     public function time() {
         asort($this->timeCloseList);  // Sort the array keeping the same keys-indices
+        calcWeights($this->timeCloseList);
     }
     
-    // Returns an sorted index array that points to the museum list objects. 
-    // Use thoses indexes to get the museum items sorted by distance.
+    // Adds appropriate weights to the weightList according to distance
     public function distance() {
         asort($this->distanceList);   // Sort the array
+        calcWeights($this->distanceList);
     }
+    
+    // Adds appropriate weights to the weightList according to rating
     public function rating() {
         asort($this->ratingList);
+        calcWeights($this->ratingList);
     }
     
     // Later Feature //
@@ -88,36 +94,38 @@ class Suggest {
     
 
     // Gets three boolean arguments as input to calculate the appropriate
-    // combined list.
+    // combined weightList.
+    // Returns the current Suggest object
     public function combined($byTime, $byDistance, $byRating) {
         
         if ($byTime) {
             time();
-            calcWeights($this->timeCloseList);
         }
         
         if ($byDistance) {
             distance();
-            calcWeights($this->distanceList);
         }
         
         if ($byRating) {
             rating();
-            calcWeights($this->ratingList);
         }
+        return $this;
     }
     
-    // Calculates the weightList according to the executed suggestion functions
+    // Configures the weightList according to the executed suggestion function
     public function calcWeights(&$suggestList) {
         $i=0;
-        foreach($suggestList as $index => $value) {
+        $indices=array_keys($suggestList);
+        foreach($indices as $index) {
             $this->weightList[$index]+= ++$i;
         }
     }
     
     // Returns the indices list containing the weights or an empty list if no
     // recommendation function was called
-    public function getIndeces() {
+    public function getIndices() {
+        
+        // Test if there are now weights inside the weightList
         foreach( $this->weightList as $weight) {
             if ($weight == 0) {
                 echo 'Please call a recommendation function';
@@ -125,9 +133,14 @@ class Suggest {
             }
         }
         
+        // Sort the weight list, the smaller the weight the MORE important
+        // the museum suggestion
         asort($this->weightList);
         
-        return array_keys($this->weightList);
+        $returnList=$this->weightList;  // Copy whole array to new one
+        unset($this->weightList);   // Clean up weightList
+        
+        return array_keys($returnList);
         
     }
 }
